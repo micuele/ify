@@ -1,3 +1,5 @@
+const API_BASE = '';
+
 const accessView = document.querySelector<HTMLElement>('#accessView')!;
 const resultView = document.querySelector<HTMLElement>('#resultView')!;
 const lastfmLogin = document.querySelector<HTMLAnchorElement>('#lastfmLogin')!;
@@ -6,7 +8,7 @@ const emojiValue = document.querySelector<HTMLElement>('#emojiValue')!;
 const userValue = document.querySelector<HTMLElement>('#userValue')!;
 
 async function fetchJson(path: string, init?: RequestInit) {
-  const res = await fetch(path);
+  const res = await fetch(`${API_BASE}${path}`, { ...init, credentials: 'include' });
   let data: any = null;
   try { data = await res.json(); } catch {}
   if (!res.ok) throw new Error(data?.error || `Request failed with ${res.status}`);
