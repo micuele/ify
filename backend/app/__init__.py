@@ -8,9 +8,11 @@ from flask_cors import CORS
 def create_app() -> Flask:
     load_dotenv()
 
-    frontend_dist = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "../frontend/dist"
+    frontend_dist = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "../../frontend/dist"
+        )
     )
 
     app = Flask(
