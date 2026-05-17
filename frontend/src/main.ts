@@ -1,5 +1,3 @@
-const API_BASE = 'http://127.0.0.1:5000';
-
 const accessView = document.querySelector<HTMLElement>('#accessView')!;
 const resultView = document.querySelector<HTMLElement>('#resultView')!;
 const lastfmLogin = document.querySelector<HTMLAnchorElement>('#lastfmLogin')!;
@@ -8,7 +6,7 @@ const emojiValue = document.querySelector<HTMLElement>('#emojiValue')!;
 const userValue = document.querySelector<HTMLElement>('#userValue')!;
 
 async function fetchJson(path: string, init?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, { ...init, credentials: 'include' });
+  const res = await fetch(path);
   let data: any = null;
   try { data = await res.json(); } catch {}
   if (!res.ok) throw new Error(data?.error || `Request failed with ${res.status}`);
@@ -38,5 +36,5 @@ async function loadState() {
   }
 }
 
-lastfmLogin.href = `${API_BASE}/auth/lastfm`;
+lastfmLogin.href = '/auth/lastfm';
 loadState();
