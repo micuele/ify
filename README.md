@@ -1,4 +1,4 @@
-# 🎧 ify
+# ify
 ify is a web application built with **Vite** on the frontend and **Flask** on the backend. 
 It connects to the Last.fm API, aggregates your top community music tags and scores your taste profile (temporarily) against custom emoji configurations.
 
