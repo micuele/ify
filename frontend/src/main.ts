@@ -1,9 +1,14 @@
+import { getLetterboxdFilms } from './integrations';
+
 const API_BASE = '';
 
 const accessView = document.querySelector<HTMLElement>('#accessView')!;
 const resultView = document.querySelector<HTMLElement>('#resultView')!;
 const lastfmLogin = document.querySelector<HTMLAnchorElement>('#lastfmLogin')!;
-const donateLink = document.querySelector<HTMLAnchorElement>('.donate')!;
+const letterboxdForm = document.querySelector<HTMLFormElement>('#letterboxdForm')!;
+const letterboxdUsername = document.querySelector<HTMLInputElement>('#letterboxdUsername')!;
+const letterboxdSubmit = document.querySelector<HTMLButtonElement>('#letterboxdSubmit')!;
+const letterboxdStatus = document.querySelector<HTMLElement>('#letterboxdStatus')!;
 const emojiValue = document.querySelector<HTMLElement>('#emojiValue')!;
 const userValue = document.querySelector<HTMLElement>('#userValue')!;
 
@@ -14,6 +19,45 @@ async function fetchJson(path: string, init?: RequestInit) {
   if (!res.ok) throw new Error(data?.error || `Request failed with ${res.status}`);
   return data;
 }
+
+function setLetterboxdStatus(
+  message: string,
+  type?: 'error' | 'success',
+) {
+  letterboxdStatus.textContent = message;
+  letterboxdStatus.classList.toggle('error', type === 'error');
+  letterboxdStatus.classList.toggle('success', type === 'success');
+}
+
+letterboxdForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const username = letterboxdUsername.value.trim().replace(/^@/, '');
+  if (!username) return;
+
+  letterboxdSubmit.disabled = true;
+  letterboxdSubmit.textContent = 'Loading...';
+  setLetterboxdStatus('Loading recent films from Letterboxd...');
+
+  try {
+    const integration = await getLetterboxdFilms(username);
+    sessionStorage.setItem('ify:letterboxd', JSON.stringify(integration));
+    sessionStorage.setItem('ify:letterboxd-username', integration.username);
+    window.dispatchEvent(new CustomEvent('letterboxd:loaded', {
+      detail: integration,
+    }));
+    setLetterboxdStatus(
+      `Loaded ${integration.film_count} films for @${integration.username}.`,
+      'success',
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not load Letterboxd';
+    setLetterboxdStatus(message, 'error');
+  } finally {
+    letterboxdSubmit.disabled = false;
+    letterboxdSubmit.textContent = 'Connect';
+  }
+});
 
 function setMode(loggedIn: boolean) {
   accessView.classList.toggle('hidden', loggedIn);
@@ -39,4 +83,5 @@ async function loadState() {
 }
 
 lastfmLogin.href = '/auth/lastfm';
+letterboxdUsername.value = sessionStorage.getItem('ify:letterboxd-username') || '';
 loadState();

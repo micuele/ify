@@ -129,6 +129,86 @@
         color: var(--muted); 
         line-height: 1.5;
       }
+
+      .integration-form {
+        display: grid;
+        gap: 10px;
+      }
+
+      .field-label {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.03em;
+      }
+
+      .input-row {
+        display: flex;
+        gap: 8px;
+      }
+
+      .input {
+        min-width: 0;
+        flex: 1;
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        padding: 13px 14px;
+        font: inherit;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+
+      .input::placeholder { color: var(--muted-dark); }
+
+      .input:focus {
+        border-color: rgba(255, 255, 255, 0.28);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .input-row .btn {
+        width: auto;
+        flex: 0 0 auto;
+        padding-inline: 18px;
+      }
+
+      .btn:disabled {
+        cursor: wait;
+        opacity: 0.65;
+        transform: none;
+      }
+
+      .form-status {
+        min-height: 18px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .form-status.error { color: #fca5a5; }
+      .form-status.success { color: #86efac; }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--muted-dark);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: '';
+        height: 1px;
+        flex: 1;
+        background: var(--panel-border);
+      }
       
       /* Crisp Interactive Actions */
       .btn { 
@@ -263,6 +343,26 @@
             <h1 class="brand-name">ify</h1>
             <p class="title">Connect your profile and get your emoji</p>
           </div>
+            <form id="letterboxdForm" class="integration-form">
+              <label class="field-label" for="letterboxdUsername">Letterboxd username</label>
+              <div class="input-row">
+                <input
+                  id="letterboxdUsername"
+                  class="input"
+                  name="username"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="username"
+                  placeholder="username"
+                  pattern="@?[A-Za-z0-9_]{1,30}"
+                  maxlength="31"
+                  required
+                />
+                <button id="letterboxdSubmit" class="btn" type="submit">Connect</button>
+              </div>
+              <p id="letterboxdStatus" class="form-status" role="status" aria-live="polite"></p>
+            </form>
+            <div class="divider">or</div>
             <a id="lastfmLogin" class="btn"  href="#">
               <img src="/lastfm-brands-solid-full.svg" alt="Last.fm" width="24" height="24" />
               Connect Last.fm
