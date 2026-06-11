@@ -1,6 +1,11 @@
 # ify
 ify is a web application built with **Vite** on the frontend and **Flask** on the backend. 
-It connects to the Last.fm API, aggregates your top community music tags and scores your taste profile (temporarily) against custom emoji configurations.
+It maps Last.fm listening data and Letterboxd/TMDB film data into the same
+24-category visual vibe system. Both providers select one of the same numbered
+output images.
+
+The category catalog is available at `GET /api/vibes`. Image files belong in
+`frontend/public/output-images/` as `01.png` through `24.png`.
 
 ## Privacy
 Your data is processed entirely in-memory and retrieved live from Last.fm,

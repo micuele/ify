@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from email.utils import parsedate_to_datetime
@@ -12,6 +13,8 @@ from xml.etree import ElementTree
 
 import requests
 
+from .vibes import classify_vibe, text_signals
+
 LETTERBOXD_ROOT = "https://letterboxd.com"
 LETTERBOXD_NAMESPACE = "https://letterboxd.com"
 TMDB_NAMESPACE = "https://themoviedb.org"
@@ -19,6 +22,27 @@ TMDB_API_ROOT = "https://api.themoviedb.org/3"
 TMDB_IMAGE_ROOT = "https://image.tmdb.org/t/p"
 MAX_FILMS = 24
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_]{1,30}$")
+TMDB_GENRE_SPECIFICITY = {
+    "drama": 0.35,
+    "comedy": 0.65,
+    "action": 0.8,
+    "adventure": 0.8,
+    "animation": 1.0,
+    "crime": 0.8,
+    "documentary": 1.0,
+    "family": 0.8,
+    "fantasy": 0.9,
+    "history": 0.9,
+    "horror": 1.1,
+    "music": 1.0,
+    "mystery": 1.0,
+    "romance": 0.9,
+    "science fiction": 1.1,
+    "tv movie": 0.5,
+    "thriller": 0.8,
+    "war": 1.0,
+    "western": 1.1,
+}
 
 
 class LetterboxdIntegrationError(Exception):
@@ -254,6 +278,61 @@ def _enrich_film(film: dict[str, Any], language: str) -> dict[str, Any]:
     return {**film, "tmdb": tmdb}
 
 
+def classify_letterboxd_films(
+    films: list[dict[str, Any]],
+    username: str,
+) -> dict[str, object]:
+    genre_counts: Counter[str] = Counter()
+    text_values: list[str] = []
+    traits: Counter[str] = Counter()
+    languages: set[str] = set()
+    years: list[int] = []
+
+    for film in films:
+        rating = film.get("rating")
+        preference_weight = 1.0
+        if film.get("liked"):
+            preference_weight += 0.75
+        if isinstance(rating, (int, float)) and rating >= 4:
+            preference_weight += 0.75
+        elif isinstance(rating, (int, float)) and rating <= 2:
+            preference_weight *= 0.5
+
+        movie = film.get("tmdb", {}).get("movie") or {}
+        for genre in movie.get("genres", []):
+            name = genre.get("name")
+            if name:
+                specificity = TMDB_GENRE_SPECIFICITY.get(name.lower(), 1.0)
+                genre_counts[name] += preference_weight * specificity
+
+        text_values.extend([
+            film.get("title", ""),
+            movie.get("title", ""),
+            movie.get("overview", ""),
+        ])
+        language = movie.get("original_language")
+        if language:
+            languages.add(language)
+        year = film.get("year")
+        if isinstance(year, int):
+            years.append(year)
+        if film.get("rewatch"):
+            traits["rewatch"] += preference_weight
+
+    current_year = datetime.now().year
+    if years and sum(1 for year in years if year <= current_year - 25) / len(years) >= 0.4:
+        traits["older_catalog"] = 1
+    if len(languages) >= 5:
+        traits["high_diversity"] = 1
+
+    return classify_vibe(
+        film_genres=genre_counts,
+        text=text_signals(text_values),
+        traits=traits,
+        seed=f"letterboxd:{username}",
+    )
+
+
 def build_letterboxd_slots(
     username: str,
     limit: int = MAX_FILMS,
@@ -289,5 +368,9 @@ def build_letterboxd_slots(
         "generated_at": datetime.now().astimezone().isoformat(),
         "slot_count": bounded_limit,
         "film_count": len(enriched_films),
+        "selected_output": classify_letterboxd_films(
+            enriched_films,
+            normalized_username,
+        ),
         "slots": slots,
     }

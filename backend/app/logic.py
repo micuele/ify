@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import csv
-import os
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
@@ -9,6 +7,8 @@ from statistics import mean
 from typing import Any
 
 import requests
+
+from .vibes import classify_vibe, text_signals
 
 LASTFM_API_ROOT = "https://ws.audioscrobbler.com/2.0/"
 
@@ -279,74 +279,40 @@ def collect_all_datapoints(username: str) -> dict[str, Any]:
 
 def build_result(username: str) -> dict[str, Any]:
     datapoints = collect_all_datapoints(username)
-    
-    # Extract the user's generated tag weights for the week
     weekly_tags_summary = datapoints["tag_signals"].get("combined_top_tags", [])
-    
-    # Rebuild a Counter structure based on Last.fm data
-    tag_counts = Counter()
-    for tag, score in weekly_tags_summary:
-        tag_counts[tag.lower()] = score
+    tag_counts = Counter({tag: score for tag, score in weekly_tags_summary})
+    summary = datapoints["weekly_recent_summary"]
+    hours = summary["hour_distribution"]
+    total = max(summary["total_scrobbles"], 1)
+    traits: Counter[str] = Counter()
 
-    # Load emoji profile rules from CSV file
-    emoji_profiles = {}
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    csv_filename = os.path.join(BASE_DIR, "emoji_profiles.csv")
-    
-    # Fallback variables
-    winner_emoji = "😡" 
-    max_score = 0
-    emoji_scores = {}
+    if summary["total_scrobbles"] >= 150:
+        traits["high_activity"] = 1
+    if summary["total_scrobbles"] < 20:
+        traits["low_activity"] = 1
+    if summary["artist_diversity_ratio"] >= 0.6:
+        traits["high_diversity"] = 1
+    if hours["night"] / total >= 0.35:
+        traits["night"] = 1
+    if hours["evening"] / total >= 0.45:
+        traits["evening"] = 1
+    if (hours["morning"] + hours["afternoon"]) / total >= 0.65:
+        traits["daytime"] = 1
 
-    if os.path.exists(csv_filename):
-        try:
-            with open(csv_filename, newline="", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    emoji = (row.get("emoji") or "").strip()
-                    if not emoji:
-                        continue
-
-                    profiletags = [
-                        (value or "").strip().lower()
-                        for key, value in row.items()
-                        if key and key.lower().startswith("tag") and (value or "").strip()
-                    ]
-                    # FIXED: Added underscore
-                    emoji_profiles[emoji] = profiletags
-
-            # FIXED: Added underscores to emoji_scores, tag_counts, and emoji_profiles
-            emoji_scores = {
-                emoji: sum(tag_counts[tag] for tag in profiletags if tag in tag_counts)
-                for emoji, profiletags in emoji_profiles.items()
-            }
-
-            if emoji_scores:
-                top_emoji = max(emoji_scores, key=emoji_scores.get)
-                # FIXED: Added underscores to max_score and winner_emoji
-                max_score = emoji_scores[top_emoji]
-                if max_score > 0:
-                    winner_emoji = top_emoji
-
-        except Exception as e:
-            print(f"Error reading emoji CSV: {e}")
-
-    total_scrobbles = datapoints["weekly_recent_summary"]["total_scrobbles"]
-
-    # FIXED: Updated print variables to match their initialized names
-    print("tag_counts:", tag_counts)
-    print("profiles:", emoji_profiles)
-    print("scores:", emoji_scores)
-    print("max_score:", max_score)
+    artist_and_track_text = text_signals([
+        *[artist.get("name", "") for artist in datapoints["weekly_top_artists"][:10]],
+        *[track.get("name", "") for track in datapoints["weekly_top_tracks"][:10]],
+    ])
+    selected_output = classify_vibe(
+        music_tags=tag_counts,
+        text=artist_and_track_text,
+        traits=traits,
+        seed=f"lastfm:{username}",
+    )
 
     return {
         "user": datapoints["user"],
-        "selected_output": {
-            "key": "total_scrobbles_last_7_days",
-            "label": "Total scrobbles in the last 7 days",
-            "value": total_scrobbles,
-            "emoji": winner_emoji,
-            "match_score": max_score
-        },
+        "provider": "lastfm",
+        "selected_output": selected_output,
         "datapoints": datapoints,
     }

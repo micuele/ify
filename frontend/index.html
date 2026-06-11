@@ -294,15 +294,6 @@
         letter-spacing: -0.01em;
       }
       
-      .emoji { 
-        font-size: 96px; 
-        line-height: 1; 
-        margin: 24px 0; 
-        filter: drop-shadow(0 10px 25px rgba(255, 255, 255, 0.15));
-        animation: floatVibe 5s ease-in-out infinite;
-        user-select: none;
-      }
-
       .output-frame {
         width: min(280px, 100%);
         aspect-ratio: 1;
@@ -361,11 +352,6 @@
         letter-spacing: -0.01em;
       }
       
-      @keyframes floatVibe {
-        0%, 100% { transform: translateY(0) scale(1); }
-        50% { transform: translateY(-10px) scale(1.03); }
-      }
-      
       /* Open Source Sticky Footer */
       .footer {
         display: flex;
@@ -409,7 +395,7 @@
           <div class="brand-header">
             <a class="brand-badge" href="https://github.com/micuele/ify" target="_blank" rel="noopener noreferrer">ify on Github -></a>
             <h1 class="brand-name">ify</h1>
-            <p class="title">Connect your profile and get your emoji</p>
+            <p class="title">Connect your profile and discover your vibe</p>
           </div>
             <button id="letterboxdToggle" class="btn" type="button" aria-expanded="false" aria-controls="letterboxdForm">
               <span class="letterboxd-mark" aria-hidden="true"><span></span><span></span><span></span></span>
@@ -452,7 +438,6 @@
             <img id="outputImage" class="output-image hidden" alt="" />
             <div id="outputPlaceholder" class="output-placeholder">01</div>
           </div>
-          <div id="emojiValue" class="emoji">⚡</div>
           <h2 id="resultTitle" class="result-title hidden"></h2>
           <p id="resultMeta" class="result-meta hidden"></p>
           <p id="userValue" class="username">@username</p>

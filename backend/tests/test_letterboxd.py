@@ -62,7 +62,13 @@ class LetterboxdTests(unittest.TestCase):
         tmdb_movie.return_value = {
             "status": "matched",
             "match_method": "id",
-            "movie": {"id": 976893},
+            "movie": {
+                "id": 976893,
+                "title": "Perfect Days",
+                "overview": "A quiet and contemplative life in Tokyo.",
+                "genres": [{"id": 18, "name": "Drama"}],
+                "original_language": "ja",
+            },
         }
 
         result = build_letterboxd_slots("example", limit=3)
@@ -73,6 +79,8 @@ class LetterboxdTests(unittest.TestCase):
         self.assertEqual(result["slots"][0]["data"]["tmdb"]["movie"]["id"], 976893)
         self.assertEqual(result["slots"][2]["image_key"], "film-03")
         self.assertIsNone(result["slots"][2]["data"])
+        self.assertIn("selected_output", result)
+        self.assertIn(result["selected_output"]["slot"], range(1, 25))
 
 
 if __name__ == "__main__":

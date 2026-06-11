@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request, session
 
 from .letterboxd import LetterboxdIntegrationError, build_letterboxd_slots
 from .logic import build_result
+from .vibes import category_catalog
 
 views_bp = Blueprint("views", __name__)
 
@@ -12,6 +13,11 @@ views_bp = Blueprint("views", __name__)
 @views_bp.get("/health")
 def health():
     return jsonify({"ok": True})
+
+
+@views_bp.get("/api/vibes")
+def api_vibes():
+    return jsonify({"categories": category_catalog()})
 
 
 @views_bp.get("/api/me")

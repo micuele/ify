@@ -45,6 +45,17 @@ export type MediaSlot<T> = {
   data: T | null;
 };
 
+export type VibeOutput = {
+  slot: number;
+  key: string;
+  image_key: string;
+  label: string;
+  description: string;
+  match_score: number;
+  confidence: number;
+  evidence: string[];
+};
+
 export type LetterboxdIntegration = {
   provider: 'letterboxd';
   username: string;
@@ -52,6 +63,7 @@ export type LetterboxdIntegration = {
   generated_at: string;
   slot_count: number;
   film_count: number;
+  selected_output: VibeOutput;
   slots: Array<MediaSlot<LetterboxdFilm>>;
 };
 

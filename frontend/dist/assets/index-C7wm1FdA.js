@@ -10,7 +10,6 @@ const resultLabel = document.querySelector('#resultLabel');
 const letterboxdOutput = document.querySelector('#letterboxdOutput');
 const outputImage = document.querySelector('#outputImage');
 const outputPlaceholder = document.querySelector('#outputPlaceholder');
-const emojiValue = document.querySelector('#emojiValue');
 const resultTitle = document.querySelector('#resultTitle');
 const resultMeta = document.querySelector('#resultMeta');
 const userValue = document.querySelector('#userValue');
@@ -31,14 +30,8 @@ function setLetterboxdStatus(message, type) {
   letterboxdStatus.classList.toggle('success', type === 'success');
 }
 
-function randomOutputSlot() {
-  const value = new Uint32Array(1);
-  crypto.getRandomValues(value);
-  return (value[0] % 24) + 1;
-}
-
-function loadOutputImage(slot) {
-  const filename = String(slot).padStart(2, '0');
+function loadOutputImage(imageKey) {
+  const filename = imageKey.padStart(2, '0');
   let extensionIndex = 0;
   outputImage.classList.add('hidden');
   outputPlaceholder.classList.remove('hidden');
@@ -53,25 +46,23 @@ function loadOutputImage(slot) {
       outputImage.src = `/output-images/${filename}.${outputExtensions[extensionIndex]}`;
     }
   };
-  outputImage.alt = `Output ${filename}`;
+  outputImage.alt = `Vibe ${filename}: ${resultTitle.textContent}`;
   outputImage.src = `/output-images/${filename}.${outputExtensions[0]}`;
 }
 
-function showLetterboxdResult(integration, slot) {
-  const selected = integration.slots[slot - 1]?.data;
-  const movie = selected?.tmdb?.movie;
+function showVibeResult(provider, username, output) {
   accessView.classList.add('hidden');
   resultView.classList.remove('hidden');
-  resultLabel.textContent = 'Your Letterboxd result:';
+  resultLabel.textContent = `Your ${provider === 'lastfm' ? 'Last.fm' : 'Letterboxd'} vibe:`;
   letterboxdOutput.classList.remove('hidden');
-  emojiValue.classList.add('hidden');
   resultTitle.classList.remove('hidden');
   resultMeta.classList.remove('hidden');
   tryAgainButton.classList.remove('hidden');
-  resultTitle.textContent = `Output ${String(slot).padStart(2, '0')}`;
-  resultMeta.textContent = movie?.title || selected?.title || 'Random profile data point';
-  userValue.textContent = `@${integration.username}`;
-  loadOutputImage(slot);
+  resultTitle.textContent = output.label;
+  const evidence = output.evidence?.length ? ` Matched: ${output.evidence.join(', ')}.` : '';
+  resultMeta.textContent = `${output.description}${evidence}`;
+  userValue.textContent = `@${username}`;
+  loadOutputImage(output.image_key);
 }
 
 letterboxdToggle.addEventListener('click', () => {
@@ -87,16 +78,14 @@ letterboxdForm.addEventListener('submit', async (event) => {
   if (!username) return;
   letterboxdSubmit.disabled = true;
   letterboxdSubmit.textContent = 'Loading...';
-  setLetterboxdStatus('Loading recent films from Letterboxd...');
+  setLetterboxdStatus('Analyzing your Letterboxd films...');
   try {
     const params = new URLSearchParams({ username, limit: '24' });
     const integration = await fetchJson(`/api/integrations/letterboxd?${params}`);
-    const outputSlot = randomOutputSlot();
     sessionStorage.setItem('ify:letterboxd', JSON.stringify(integration));
     sessionStorage.setItem('ify:letterboxd-username', integration.username);
-    sessionStorage.setItem('ify:letterboxd-output', String(outputSlot));
     window.dispatchEvent(new CustomEvent('letterboxd:loaded', { detail: integration }));
-    showLetterboxdResult(integration, outputSlot);
+    showVibeResult('letterboxd', integration.username, integration.selected_output);
   } catch (error) {
     setLetterboxdStatus(error?.message || 'Could not load Letterboxd', 'error');
   } finally {
@@ -123,15 +112,17 @@ async function loadState() {
     const me = await fetchJson('/api/me');
     if (!me.authenticated) throw new Error('not logged in');
     const result = await fetchJson('/api/result');
-    setMode(true);
-    userValue.textContent = result.user?.name || me.user?.name || 'unknown';
-    emojiValue.textContent = result.selected_output?.emoji || '🎸';
+    showVibeResult(
+      'lastfm',
+      result.user?.name || me.user?.name || 'unknown',
+      result.selected_output,
+    );
   } catch {
     const saved = sessionStorage.getItem('ify:letterboxd');
-    const savedSlot = Number(sessionStorage.getItem('ify:letterboxd-output'));
-    if (saved && savedSlot >= 1 && savedSlot <= 24) {
+    if (saved) {
       try {
-        showLetterboxdResult(JSON.parse(saved), savedSlot);
+        const integration = JSON.parse(saved);
+        showVibeResult('letterboxd', integration.username, integration.selected_output);
         return;
       } catch {}
     }
